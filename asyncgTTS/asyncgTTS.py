@@ -3,6 +3,7 @@ from base64 import b64decode
 from time import time
 from typing import Dict, List, Tuple, Union
 
+import jwt
 from aiohttp import ClientSession
 
 from ._decos import require_session

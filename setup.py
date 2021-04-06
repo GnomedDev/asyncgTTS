@@ -18,7 +18,7 @@ setup(
     url='https://github.com/gnome-py/asyncgTTS',
     download_url='https://github.com/Gnome-py/asyncgTTS/archive/v0.1.0.tar.gz',
     keywords=['async', 'TTS', 'gtts', 'text to speech'],
-    install_requires=['aiohttp'],
+    install_requires=['aiohttp', 'pyJWT[crypto]'],
     classifiers=[
     'Intended Audience :: Developers',
     'License :: OSI Approved :: MIT License',
