@@ -4,22 +4,12 @@ from ._decos import require_session
 from .gtts import gtts
 
 
-class NoContextManagerException(Exception): pass
-offical_url = "http://easy-gtts.herokuapp.com/"
+OFFICIAL_URL = "http://easy-gtts.herokuapp.com/"
 
 class easygTTS(gtts):
-    def __init__(self, session: str = ClientSession, base_url: str = offical_url):
+    def __init__(self, session: str = ClientSession, base_url: str = OFFICIAL_URL):
         self.url = base_url
         super().__init__(session)
-
-    def require_session(func):
-        async def wrapper(self, *args, **kwargs):
-            if self.session:
-                return await func(self, *args, **kwargs)
-
-            raise NoContextManagerException("Session is not initialized, use context manager or pass aiohttp.ClientSession on init")
-
-        return wrapper
 
     @require_session
     async def get(self, **kwargs):

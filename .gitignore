@@ -1,2 +1,7 @@
 __pycache__ 
 *.bak
+
+asyncgTTS.egg-info
+test.py
+build
+dist

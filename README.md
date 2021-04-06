@@ -11,8 +11,7 @@ import asyncgTTS
 from subprocess import PIPE, run
 
 async def main():
-    token = run(['gcloud', 'auth', 'application-default', 'print-access-token'], stdout=PIPE).stdout.decode().replace("\n", "")
-    async with await asyncgTTS.setup(premium=True, auth_token=token) as gtts:
+    async with await asyncgTTS.setup(premium=True, service_account_json_location="SERVICE_ACCOUNT.json") as gtts:
         hello_world_ogg = await gtts.get("Hello World", voice_lang=("en-US-Standard-B", "en-us"))
         hello_world_mp3 = await gtts.get("Hello World", voice_lang=("en-US-Standard-A", "en-us"), ret_type="MP3")
 
