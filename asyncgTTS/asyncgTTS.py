@@ -1,3 +1,4 @@
+import json
 from base64 import b64decode
 from time import time
 from typing import Dict, List, Tuple, Union
@@ -8,7 +9,6 @@ from ._decos import require_session
 from .errors import (AuthorizationException, RatelimitException,
                      UnknownResponse, asyncgttsException)
 from .gtts import gtts
-
 
 GOOGLE_API_URL = "https://texttospeech.googleapis.com/"
 
@@ -37,14 +37,11 @@ def get_jwt(service_account: dict):
 
 class asyncgTTS(gtts):
     def __init__(self, session: ClientSession, service_account_json_location: str = None):
-        if (not auth_token and not service_account_json) or (auth_token and service_account_json):
+        if not service_account_json_location:
             raise AuthorizationException
 
-        if service_account_json_location:
-            with open(service_account_json_location) as json_file:
-                self.service_account = json.load(json_file)
-
-        self.auth_token = auth_token
+        with open(service_account_json_location) as json_file:
+            self.service_account = json.load(json_file)
 
         super().__init__(session)
 
