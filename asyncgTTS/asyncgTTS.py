@@ -50,7 +50,7 @@ class asyncgTTS(gtts):
     @property
     def headers(self):
         # Handle loading of Bearer token.
-        auth_token = self.auth_token or get_jwt(self.service_account)
+        auth_token = get_jwt(self.service_account)
 
         headers = {}
         headers.update(self.static_headers)
