@@ -1,6 +1,7 @@
 from aiohttp import ClientSession
 
 from ._decos import require_session
+from .errors import RatelimitException, easygttsException
 from .gtts import gtts
 
 
