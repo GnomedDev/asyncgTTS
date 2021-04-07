@@ -7,6 +7,20 @@ class NoInitialisedSession(LibraryException):
     "Raised when no aiohttp session is available or creatable"
     pass
 
+class RatelimitException(LibraryException):
+    """Raised when getting a 418 response from Google
+
+    Parameters:
+        resp_content: Response body    as str
+        resp_headers: Response headers as dict
+    """
+
+    def __init__(self, resp_content: str, resp_headers: dict, *args, **kwargs):
+        self.resp_content = resp_content
+        self.resp_headers = resp_headers
+
+        super().__init__(*args, **kwargs)
+
 
 class easygttsException(LibraryException):
     "Base Error for easygTTS code. (premium=False)"
@@ -30,19 +44,5 @@ class UnknownResponse(asyncgttsException):
 
     def __init__(self, resp: dict, *args, **kwargs):
         self.resp = resp
-
-        super().__init__(*args, **kwargs)
-
-class RatelimitException(asyncgttsException):
-    """Raised when getting a 418 response from Google
-
-    Parameters:
-        resp_content: Response body    as str
-        resp_headers: Response headers as dict
-    """
-
-    def __init__(self, resp_content: str, resp_headers: dict, *args, **kwargs):
-        self.resp_content = resp_content
-        self.resp_headers = resp_headers
 
         super().__init__(*args, **kwargs)

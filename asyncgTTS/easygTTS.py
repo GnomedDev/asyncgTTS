@@ -16,10 +16,20 @@ class easygTTS(gtts):
         if not kwargs.get("lang"):
             kwargs["lang"] = "en"
 
-        async with self.session.get(f"{self.url}tts", params=kwargs) as resp:
-            return await resp.read()
+        async with self.session.get(f"{self.url}v1/tts", params=kwargs) as resp:
+            if resp.ok:
+                return await resp.read()
+
+            elif resp.status == 418:
+                content = await resp.text()
+                headers = dict(resp.headers)
+
+                raise RatelimitException(content, headers)
+
+            else:
+                raise easygttsException(f"{resp.status} {resp.reason}: {resp.content}")
 
     @require_session
     async def langs(self):
-        async with self.session.get(f"{self.url}langs") as resp:
+        async with self.session.get(f"{self.url}v1/langs") as resp:
             return await resp.json()
