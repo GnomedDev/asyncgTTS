@@ -86,7 +86,7 @@ class asyncgTTS(gtts):
             elif resp.status == 401:
                 raise AuthorizationException
 
-            elif resp.status == 418:
+            elif resp.status == 429:
                 content = await resp.text()
                 headers = dict(resp.headers)
 
