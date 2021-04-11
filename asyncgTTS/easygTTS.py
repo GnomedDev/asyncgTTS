@@ -22,13 +22,12 @@ class easygTTS(gtts):
                 return await resp.read()
 
             elif resp.status == 429:
-                content = await resp.text()
+                content = resp.content
                 headers = dict(resp.headers)
 
                 raise RatelimitException(content, headers)
 
-            else:
-                raise easygttsException(f"{resp.status} {resp.reason}: {resp.content}")
+            raise easygttsException(f"{resp.status} {resp.reason}: {resp.content}")
 
     @require_session
     async def langs(self):

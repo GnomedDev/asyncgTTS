@@ -113,7 +113,7 @@ class asyncgTTS(gtts):
                 raise AuthorizationException
 
             elif resp.status == 429:
-                content = await resp.text()
+                content = resp.content
                 headers = dict(resp.headers)
 
                 raise RatelimitException(content, headers)
