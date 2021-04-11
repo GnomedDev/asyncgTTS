@@ -1,6 +1,8 @@
 from .errors import NoInitialisedSession
+from functools import wraps
 
 def require_session(func):
+    @wraps(func)
     async def wrapper(self, *args, **kwargs):
         if self.session:
             return await func(self, *args, **kwargs)

@@ -14,26 +14,53 @@ from .gtts import gtts
 GOOGLE_API_URL = "https://texttospeech.googleapis.com/"
 
 
-def get_jwt(service_account: dict):
-    service_account_email = service_account["client_email"]
-    current_time = time()
-    payload = {
-        "aud": GOOGLE_API_URL,
+class JSONWebTokenHandler:
+    def __init__(self, service_account: dict) -> None:
+        self._jwt = None
+        self.expire_time = 0.0
 
-        "iat": current_time,
-        "exp": current_time + 3600,
-        "iss": service_account_email,
-        "sub": service_account_email,
-        }
-    additional_headers = {
-        "kid": service_account["private_key"]
-        }
+        service_account_email = service_account["client_email"]
+        self.partial_payload = {
+            "aud": GOOGLE_API_URL,
+            "iss": service_account_email,
+            "sub": service_account_email,
+            }
 
-    return jwt.encode(
-        payload,
-        service_account["private_key"],
-        headers=additional_headers,
-        algorithm="RS256"
+        self.pkey = service_account["private_key"]
+        self.additional_headers = {"kid": self.pkey}
+
+    def __str__(self):
+        jwt = self.jwt
+        if isinstance(jwt, bytes):
+            jwt = jwt.decode()
+
+        return jwt
+
+    @property
+    def jwt(self):
+        if time() > self.expire_time:
+            self.refresh_jwt()
+
+        return self._jwt
+
+    def refresh_jwt(self):
+        current_time = time()
+        self.expire_time = current_time + 3600
+
+        payload = {}
+        payload.update(self.partial_payload)
+        payload.update(
+            {
+                "iat": current_time,
+                "exp": self.expire_time
+            }
+        )
+
+        self._jwt = jwt.encode(
+            payload,
+            self.pkey,
+            headers=self.additional_headers,
+            algorithm="RS256"
         )
 
 class asyncgTTS(gtts):
@@ -42,8 +69,9 @@ class asyncgTTS(gtts):
             raise AuthorizationException
 
         with open(service_account_json_location) as json_file:
-            self.service_account = json.load(json_file)
+            service_account = json.load(json_file)
 
+        self.jwt = JSONWebTokenHandler(service_account)
         super().__init__(session)
 
     static_headers = {"Content-Type": "application/json; charset=utf-8"}
@@ -51,11 +79,9 @@ class asyncgTTS(gtts):
     @property
     def headers(self):
         # Handle loading of Bearer token.
-        auth_token = get_jwt(self.service_account).decode()
-
         headers = {}
         headers.update(self.static_headers)
-        headers.update({"Authorization": f"Bearer {auth_token}"})
+        headers.update({"Authorization": f"Bearer {self.jwt}"})
 
         return headers
 
