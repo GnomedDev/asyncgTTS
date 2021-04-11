@@ -21,7 +21,7 @@ class easygTTS(gtts):
             if resp.ok:
                 return await resp.read()
 
-            elif resp.status == 418:
+            elif resp.status == 429:
                 content = await resp.text()
                 headers = dict(resp.headers)
 
