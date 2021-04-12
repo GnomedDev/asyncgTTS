@@ -17,7 +17,7 @@ class easygTTS(gtts):
         if not kwargs.get("lang"):
             kwargs["lang"] = "en"
 
-        async with self.session.get(f"{self.url}v1/tts", params=kwargs) as resp:
+        async with self.session.post(f"{self.url}v1/tts", json=kwargs) as resp:
             if resp.ok:
                 return await resp.read()
 
