@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import json
+import time
 from base64 import b64decode
-from time import time
-from typing import Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import jwt
 from aiohttp import ClientSession
@@ -11,20 +13,29 @@ from .errors import (AuthorizationException, RatelimitException,
                      UnknownResponse, asyncgttsException)
 from .gtts import gtts
 
+
+if TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
+    class Voice(TypedDict):
+        naturalSampleRateHertz: int
+        languageCodes: List[str]
+        ssmlGender: str
+        name: str
+
+
 GOOGLE_API_URL = "https://texttospeech.googleapis.com/"
-
-
 class JSONWebTokenHandler:
-    def __init__(self, service_account: dict) -> None:
-        self._jwt = None
+    def __init__(self, service_account: Dict[str, str]) -> None:
         self.expire_time = 0.0
+        self._jwt: Optional[str] = None
 
         service_account_email = service_account["client_email"]
         self.partial_payload = {
             "aud": GOOGLE_API_URL,
             "iss": service_account_email,
             "sub": service_account_email,
-            }
+        }
 
         self.pkey = service_account["private_key"]
         self.additional_headers = {"kid": self.pkey}
@@ -32,22 +43,24 @@ class JSONWebTokenHandler:
     def __str__(self):
         jwt = self.jwt
         if isinstance(jwt, bytes):
-            jwt = jwt.decode()
+            jwt: str = jwt.decode()
 
         return jwt
 
     @property
-    def jwt(self):
-        if time() > self.expire_time:
-            self.refresh_jwt()
+    def jwt(self) -> str:
+        jwt_token = self._jwt
+        if not jwt_token or time() > self.expire_time:
+            jwt_token = self.get_jwt()
 
+        self._jwt = jwt_token
         return self._jwt
 
-    def refresh_jwt(self):
-        current_time = time()
+    def get_jwt(self) -> str:
+        current_time = time.time()
         self.expire_time = current_time + 3600
 
-        payload = {}
+        payload: Dict[str, Union[str, float]] = {}
         payload.update(self.partial_payload)
         payload.update(
             {
@@ -56,15 +69,23 @@ class JSONWebTokenHandler:
             }
         )
 
-        self._jwt = jwt.encode(
+        jwt_token: str = jwt.encode(
             payload,
             self.pkey,
             headers=self.additional_headers,
             algorithm="RS256"
         )
+        self._jwt = jwt_token
+        return jwt_token
+
+    refresh_jwt = get_jwt # backwards compatibility
 
 class asyncgTTS(gtts):
-    def __init__(self, session: ClientSession, service_account_json_location: str = None):
+    static_headers = {"Content-Type": "application/json; charset=utf-8"}
+    def __init__(self,
+        session: ClientSession,
+        service_account_json_location: str = None
+    ):
         if not service_account_json_location:
             raise AuthorizationException
 
@@ -74,10 +95,8 @@ class asyncgTTS(gtts):
         self.jwt = JSONWebTokenHandler(service_account)
         super().__init__(session)
 
-    static_headers = {"Content-Type": "application/json; charset=utf-8"}
-
     @property
-    def headers(self):
+    def headers(self) -> Dict[str, str]:
         # Handle loading of Bearer token.
         headers = {}
         headers.update(self.static_headers)
@@ -86,7 +105,12 @@ class asyncgTTS(gtts):
         return headers
 
     @require_session
-    async def get(self, text: str, voice_lang: Tuple[str] = ("en-US-Standard-B", "en-us"), ret_type: str = "OGG_OPUS") -> bytes:
+    async def get(self,
+        text: str,
+        voice_lang: Tuple[str, str] = ("en-US-Standard-B", "en-us"),
+        ret_type: str = "OGG_OPUS"
+    ) -> bytes:
+
         json_body = {
             "input": {
                 "text": text
@@ -100,28 +124,27 @@ class asyncgTTS(gtts):
             }
         }
 
-        async with self.session.post(f"{GOOGLE_API_URL}v1/text:synthesize", json=json_body, headers=self.headers) as resp:
+        async with self.session.post(
+            f"{GOOGLE_API_URL}v1/text:synthesize",
+            json=json_body, headers=self.headers
+        ) as resp:
             if resp.ok:
                 resp_json = await resp.json()
                 try:
-                    audio_data = b64decode(resp_json["audioContent"])
-                    return audio_data
+                    return b64decode(resp_json["audioContent"])
                 except KeyError:
                     raise UnknownResponse(resp_json)
 
             elif resp.status == 401:
                 raise AuthorizationException
-
             elif resp.status == 429:
-                content = resp.content
-                headers = dict(resp.headers)
+                raise RatelimitException(await resp.text(), dict(resp.headers))
 
-                raise RatelimitException(content, headers)
-
-            else:
-                raise asyncgttsException(f"{resp.status} {resp.reason}: {resp.content}")
+            raise asyncgttsException(
+                f"{resp.status} {resp.reason}: {resp.content}"
+            )
 
     @require_session
-    async def get_voices(self) -> List[dict]:
+    async def get_voices(self) -> List[Voice]:
         async with self.session.get(f"{GOOGLE_API_URL}v1/voices", headers=self.headers) as resp:
             return (await resp.json())["voices"]

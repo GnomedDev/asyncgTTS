@@ -7,11 +7,15 @@ Asynchronous interfaces to the [official Google Text to Speech](https://cloud.go
 ### asyncgTTS
 ```python
 import asyncio
-import asyncgTTS
 from subprocess import PIPE, run
 
+import aiohttp
+import asyncgTTS
+
 async def main():
-    async with await asyncgTTS.setup(premium=True, service_account_json_location="SERVICE_ACCOUNT.json") as gtts:
+    async with aiohttp.ClientSession() as session:
+        gtts = await asyncgTTS.setup(premium=True, session=session, service_account_json_location="SERVICE_ACCOUNT.json")
+
         hello_world_ogg = await gtts.get("Hello World", voice_lang=("en-US-Standard-B", "en-us"))
         hello_world_mp3 = await gtts.get("Hello World", voice_lang=("en-US-Standard-A", "en-us"), ret_type="MP3")
 
@@ -25,13 +29,16 @@ asyncio.run(main())
 
 ### easygTTS
 ```python
-import asyncgTTS
 import asyncio
 
+import aiohttp
+import asyncgTTS
+
 async def main():
-    async with await asyncgTTS.setup(premium=False) as gtts:
+    async with aiohttp.ClientSession() as session:
+        gtts = await asyncgTTS.setup(premium=False, session=session)
         hello_world = await gtts.get(text="Hello World")
-    
+
     with open("Hello_world.mp3", "wb") as f:
         f.write(hello_world)
 
