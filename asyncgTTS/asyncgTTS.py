@@ -50,7 +50,7 @@ class JSONWebTokenHandler:
     @property
     def jwt(self) -> str:
         jwt_token = self._jwt
-        if not jwt_token or time() > self.expire_time:
+        if not jwt_token or time.time() > self.expire_time:
             jwt_token = self.get_jwt()
 
         self._jwt = jwt_token
